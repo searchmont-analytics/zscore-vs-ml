@@ -44,6 +44,7 @@ SITE_TAIL = """
   });
 })();
 </script>
+<!-- Cloudflare Web Analytics (same site token as the portfolio home page) --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "7ad015eac36449c68d153866f3f50313"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
 """
@@ -52,7 +53,7 @@ SITE_TOPBAR = f"""  <nav class="topnav" aria-label="Site">
     <div class="right"><a href="{REPO_URL}">Code on GitHub</a><button type="button" id="themeToggle">Light theme</button></div>
   </nav>"""
 SITE_REPO = f"""    <p class="prose">Source, data generator and evaluation: <a href="{REPO_URL}" style="color:var(--ml)">{REPO_URL.replace("https://", "")}</a></p>"""
-SITE_FOOTLINK = f"""<span><a href="{PORTFOLIO_URL}">Travis McCormack · Data &amp; analytics portfolio</a></span>"""
+SITE_FOOTLINK = f"""<span>No cookies; visits are counted with Cloudflare Web Analytics.</span><span><a href="{PORTFOLIO_URL}">Travis McCormack · Data &amp; analytics portfolio</a></span>"""
 DETS = ["ml_expected", "zscore_30d", "zscore_30d_k2", "dow_zscore"]
 
 
