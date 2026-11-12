@@ -1,0 +1,95 @@
+{
+  "eval_start": "2024-11-30",
+  "eval_end": "2026-10-31",
+  "eval_days": 701,
+  "detectors": {
+    "zscore_30d": {
+      "label": "Rolling 30-day z-score (3\u03c3)",
+      "incidents_caught": 9,
+      "incidents_total": 21,
+      "false_alerts": 34,
+      "alert_precision": 0.277,
+      "false_alerts_by_day_type": {
+        "Weekday": 24,
+        "Long weekend": 5,
+        "Weekend": 5
+      },
+      "false_alerts_by_metric": {
+        "underage_pct": 13,
+        "email_null_pct": 7,
+        "duplicate_id_pct": 5,
+        "invalid_postal_pct": 4,
+        "daily_spend": 2,
+        "tombstone_records": 2,
+        "activity_records": 1
+      }
+    },
+    "zscore_30d_k2": {
+      "label": "Rolling 30-day z-score (2\u03c3)",
+      "incidents_caught": 11,
+      "incidents_total": 21,
+      "false_alerts": 216,
+      "alert_precision": 0.065,
+      "false_alerts_by_day_type": {
+        "Weekday": 86,
+        "Weekend": 71,
+        "Long weekend": 43,
+        "Stat holiday": 11,
+        "Event day": 5
+      },
+      "false_alerts_by_metric": {
+        "email_null_pct": 41,
+        "duplicate_id_pct": 35,
+        "underage_pct": 32,
+        "invalid_postal_pct": 30,
+        "activity_records": 26,
+        "daily_spend": 26,
+        "tombstone_records": 26
+      }
+    },
+    "dow_zscore": {
+      "label": "Same-weekday z-score (8 wk)",
+      "incidents_caught": 18,
+      "incidents_total": 21,
+      "false_alerts": 185,
+      "alert_precision": 0.115,
+      "false_alerts_by_day_type": {
+        "Weekday": 64,
+        "Weekend": 41,
+        "Stat holiday": 38,
+        "Long weekend": 27,
+        "Event day": 15
+      },
+      "false_alerts_by_metric": {
+        "activity_records": 40,
+        "tombstone_records": 35,
+        "daily_spend": 34,
+        "underage_pct": 22,
+        "email_null_pct": 20,
+        "duplicate_id_pct": 19,
+        "invalid_postal_pct": 15
+      }
+    },
+    "ml_expected": {
+      "label": "ML expected-value model",
+      "incidents_caught": 18,
+      "incidents_total": 21,
+      "false_alerts": 13,
+      "alert_precision": 0.658,
+      "false_alerts_by_day_type": {
+        "Weekday": 8,
+        "Stat holiday": 3,
+        "Event day": 1,
+        "Weekend": 1
+      },
+      "false_alerts_by_metric": {
+        "daily_spend": 4,
+        "activity_records": 3,
+        "email_null_pct": 2,
+        "duplicate_id_pct": 2,
+        "tombstone_records": 1,
+        "invalid_postal_pct": 1
+      }
+    }
+  }
+}

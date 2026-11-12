@@ -1,0 +1,467 @@
+<title>Beyond the Z-Score</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with full-width figure rows that break out to 1100px. Ops-console feel: cool slate neutrals, blue = the ML detector. */
+:root {
+  --bg: #f6f7f8; --surface: #fcfcfb; --ink: #0f1419; --ink-2: #4b5560; --muted: #858d96;
+  --grid: #e3e6e9; --axis: #c3c8cd; --ring: rgba(15,20,25,.10); --wash: #eef2f6;
+  --ml: #2a78d6; --z3: #eb6834; --z2: #1baf7a; --dow: #eda100;
+  --crit: #d03b3b; --good: #0ca30c; --good-ink: #006300;
+  --seq-0: #f0f4f9; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #5598e7; --seq-4: #256abf; --seq-5: #104281;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1013; --surface: #16191d; --ink: #eef0f2; --ink-2: #b9c0c7; --muted: #8a929a;
+  --grid: #262a2f; --axis: #3a3f45; --ring: rgba(255,255,255,.10); --wash: #1d2228;
+  --ml: #3987e5; --z3: #d95926; --z2: #199e70; --dow: #c98500;
+  --crit: #e66767; --good: #0ca30c; --good-ink: #0ca30c;
+  --seq-0: #1b2027; --seq-1: #104281; --seq-2: #184f95; --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #86b6ef;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e1013; --surface: #16191d; --ink: #eef0f2; --ink-2: #b9c0c7; --muted: #8a929a;
+  --grid: #262a2f; --axis: #3a3f45; --ring: rgba(255,255,255,.10); --wash: #1d2228;
+  --ml: #3987e5; --z3: #d95926; --z2: #199e70; --dow: #c98500;
+  --crit: #e66767; --good: #0ca30c; --good-ink: #0ca30c;
+  --seq-0: #1b2027; --seq-1: #104281; --seq-2: #184f95; --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #86b6ef;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 64px; }
+.wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 56px; }
+.prose { max-width: 68ch; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(2rem, 4.5vw, 3.1rem); font-weight: 700; letter-spacing: -.02em; }
+h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -.01em; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.stack { display: grid; gap: 14px; }
+.eyebrow { font: 500 .75rem/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.15rem; color: var(--ink-2); }
+code, .mono { font-family: var(--f-mono); font-size: .9em; }
+.muted { color: var(--muted); } .ink2 { color: var(--ink-2); }
+header.hero { padding-top: 56px; display: grid; gap: 18px; }
+
+.panel { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 20px; min-width: 0; }
+
+/* Scoreboard */
+.score { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.score th { text-align: left; font: 500 .72rem/1.2 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 0 12px 10px 0; }
+.score td { padding: 12px 12px 12px 0; border-top: 1px solid var(--grid); vertical-align: middle; }
+.score .num { font-variant-numeric: tabular-nums; font-family: var(--f-mono); white-space: nowrap; }
+.score tr.win td { background: var(--wash); }
+.score tr.win td:first-child { border-radius: 8px 0 0 8px; padding-left: 10px; }
+.det { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+.sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.bar { position: relative; height: 10px; background: var(--grid); border-radius: 5px; min-width: 90px; }
+.bar > i { position: absolute; inset: 0 auto 0 0; border-radius: 5px; }
+.cellbar { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+.tablewrap { overflow-x: auto; }
+
+/* Explorer */
+.controls { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: end; }
+.ctl { display: grid; gap: 6px; }
+.ctl > span { font: 500 .7rem/1 var(--f-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.seg button { font: 500 .85rem/1 var(--f-body); color: var(--ink-2); background: none; border: 0; padding: 9px 12px; cursor: pointer; border-right: 1px solid var(--ring); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 -2px 0 var(--ml); }
+.seg button:focus-visible, select:focus-visible { outline: 2px solid var(--ml); outline-offset: 2px; }
+select { font: 500 .85rem var(--f-body); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--ring); background: var(--bg); color: var(--ink); }
+.chart { position: relative; margin-top: 14px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--muted); font: 400 11px var(--f-mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: .85rem; color: var(--ink-2); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--ring); box-shadow: 0 6px 20px rgba(0,0,0,.12);
+  border-radius: 8px; padding: 10px 12px; font-size: .8rem; line-height: 1.45; min-width: 190px; z-index: 5; }
+.tip b { font-weight: 600; } .tip .r { display: flex; justify-content: space-between; gap: 14px; font-variant-numeric: tabular-nums; }
+.readout { margin-top: 12px; font-size: .9rem; color: var(--ink-2); }
+.readout b { color: var(--ink); }
+
+/* Two-up grid */
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+.heat { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: .85rem; }
+.heat th { font: 500 .7rem/1.2 var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 4px; text-align: center; }
+.heat th.rowh { text-align: left; text-transform: none; font: 500 .85rem var(--f-body); color: var(--ink-2); letter-spacing: 0; white-space: nowrap; }
+.heat td { text-align: center; padding: 10px 4px; border-radius: 5px; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* Incident table */
+.inc { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.inc th { text-align: left; font: 500 .7rem/1.2 var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 0 10px 10px 0; vertical-align: bottom; }
+.inc td { padding: 10px 10px 10px 0; border-top: 1px solid var(--grid); vertical-align: top; }
+.inc td.c { text-align: center; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font: 500 .75rem/1 var(--f-mono); padding: 4px 7px; border-radius: 999px; white-space: nowrap; }
+.chip.ok { color: var(--good-ink); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.chip.miss { color: var(--crit); background: color-mix(in srgb, var(--crit) 12%, transparent); }
+.kind { font: 500 .72rem var(--f-mono); color: var(--muted); }
+
+/* How it works */
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.step { border: 1px solid var(--ring); border-radius: 10px; padding: 16px; background: var(--surface); display: grid; gap: 8px; align-content: start; }
+.step .eyebrow { color: var(--ml); }
+ul.clean { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+pre { background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font: 400 .85rem/1.6 var(--f-mono); margin: 0; }
+.callout { border-left: 3px solid var(--ml); padding: 4px 0 4px 16px; }
+.topnav { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-top: 20px; font-size: .9rem; }
+.topnav a { color: var(--ink-2); text-decoration: none; }
+.topnav a:hover { color: var(--ink); text-decoration: underline; }
+.topnav .right { display: flex; gap: 16px; align-items: center; }
+.topnav button { font: 500 .85rem var(--f-body); color: var(--ink-2); background: none; border: 1px solid var(--ring); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.topnav button:focus-visible, .topnav a:focus-visible { outline: 2px solid var(--ml); outline-offset: 2px; }
+footer.fine { border-top: 1px solid var(--grid); padding-top: 18px; font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+footer.fine a { color: var(--ink-2); }
+@media (max-width: 640px) { .hide-sm { display: none; } .panel { padding: 14px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+<!--__TOPBAR__-->
+  <header class="hero">
+    <div class="eyebrow">Data observability · proof of concept · synthetic Ontario gaming data</div>
+    <h1>Beyond the Z-Score</h1>
+    <p class="lede prose">Casino play surges every Friday and Saturday, on long weekends, New Year's Eve and Super Bowl Sunday, and drops on Christmas Day. A rolling 30-day z-score can't tell that rhythm apart from a broken feed. This POC monitors a customer tombstone feed and daily play volumes over 26 months with 15 injected data-quality incidents, and compares the z-score against a model that learns what a normal day should look like.</p>
+  </header>
+
+  <section class="stack">
+    <div class="eyebrow">Result · <span id="evalWindow"></span></div>
+    <h2>Same detection rate, a fraction of the noise</h2>
+    <div class="panel tablewrap"><table class="score" id="scoreboard"></table></div>
+    <p class="muted prose" style="font-size:.9rem">An incident counts as caught if any of its days alerted. A false alert is an alert on a day with no incident, counted per metric across all 7 monitored metrics. Precision = alerted incident-days ÷ all alerts.</p>
+  </section>
+
+  <section class="stack">
+    <div class="eyebrow">Why a z-score was not enough</div>
+    <h2>The baseline has no idea what day it is</h2>
+    <div class="prose stack ink2">
+      <p>A 30-day rolling mean averages Tuesdays and Saturdays together. Saturday runs about 70% above Tuesday in a normal week, so the standard deviation swells to cover that swing. The result is two failure modes, and no threshold fixes both.</p>
+      <ul class="clean">
+        <li><b>At 3σ it goes blind.</b> The band is so wide that a Saturday missing a third of its records still looks like an ordinary Tuesday. It caught 9 of 21 incident signals, mostly the extreme ones (missing feed, ×100 unit error).</li>
+        <li><b>At 2σ it cries wolf.</b> Tighten it and every busy Saturday, long weekend and holiday trips it: 216 false alerts in 23 months, roughly one every three days.</li>
+        <li><b>Same-weekday z-scores help, then stall.</b> Comparing Saturday to the last eight Saturdays fixes the weekly rhythm, but Victoria Day still gets compared to normal Mondays. It caught 18 incidents and raised 185 false alerts, 38 of them on stat holidays.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="stack">
+    <div class="eyebrow">Explore the series</div>
+    <h2>Expected-value band vs. what actually landed</h2>
+    <div class="panel">
+      <div class="controls">
+        <label class="ctl"><span>Metric</span>
+          <select id="metric">
+            <option value="activity_records">Activity record volume</option>
+            <option value="daily_spend">Daily spend ($)</option>
+            <option value="tombstone_records">Tombstone rows loaded</option>
+            <option value="email_null_pct">Tombstone · email null %</option>
+            <option value="invalid_postal_pct">Tombstone · invalid postal %</option>
+            <option value="duplicate_id_pct">Tombstone · duplicate ID %</option>
+            <option value="underage_pct">Tombstone · under-19 DOB %</option>
+          </select></label>
+        <div class="ctl"><span>Detector band</span>
+          <div class="seg" id="detSeg">
+            <button data-v="ml_expected" aria-pressed="true">ML expected</button>
+            <button data-v="zscore_30d" aria-pressed="false">30-day z (3σ)</button>
+            <button data-v="dow_zscore" aria-pressed="false">Same-weekday z</button>
+          </div></div>
+        <div class="ctl"><span>Window</span>
+          <div class="seg" id="winSeg">
+            <button data-v="2024-11-30|2025-02-28" aria-pressed="false">First winter</button>
+            <button data-v="2025-12-01|2026-02-28" aria-pressed="true">Second winter</button>
+            <button data-v="2026-06-15|2026-08-31" aria-pressed="false">Summer drift</button>
+            <button data-v="all" aria-pressed="false">All 23 months</button>
+          </div></div>
+      </div>
+      <div class="chart" id="chart"><div class="tip" id="tip" hidden></div></div>
+      <div class="legend" id="legend"></div>
+      <p class="readout" id="readout"></p>
+    </div>
+    <p class="muted prose" style="font-size:.9rem">Try <b>Second winter</b> on activity records. The ML band dips for Christmas Day and jumps for New Year's Eve, so the truncated New Year's Eve feed falls outside it. Switch to <b>30-day z</b> and the same night sits comfortably inside a band that's too wide to mean anything.</p>
+  </section>
+
+  <section class="stack">
+    <div class="eyebrow">Where false alerts land</div>
+    <h2>Calendar days stop being alarms</h2>
+    <div class="two">
+      <div class="panel stack">
+        <h3>False alerts by day type</h3>
+        <div class="tablewrap"><table class="heat" id="heat"></table></div>
+        <p class="muted" style="font-size:.85rem">Darker = more false alerts. All 7 metrics, evaluation window.</p>
+      </div>
+      <div class="panel stack">
+        <h3>False alerts per quarter</h3>
+        <div class="chart" id="qchart"><div class="tip" id="qtip" hidden></div></div>
+        <div class="legend" id="qlegend"></div>
+      </div>
+    </div>
+    <div class="prose stack ink2">
+      <p><b>Given time, it learns.</b> In its first winter, the ML detector had never seen a Christmas or a New Year's Eve, and alerted on both. It treats a holiday it hasn't met yet with a wider band, but Christmas Day volumes fall 40%, which is still too far. By the second winter it remembers how each holiday behaved and stays quiet. Of the <span id="mlFpCount"></span> false alerts it raised, <span id="mlFpHol"></span> landed on a holiday or event, and most of those came in the first season.</p>
+    </div>
+  </section>
+
+  <section class="stack">
+    <div class="eyebrow">Ground truth</div>
+    <h2>The 15 injected incidents</h2>
+    <div class="panel tablewrap"><table class="inc" id="inc"></table></div>
+    <div class="prose callout ink2"><p><b>What the ML still misses.</b> It misses three spend dips of about 30% on holiday weekends, where spend itself swings ±8% day to day. For two of them, the record-volume signal for the same incident was caught, so the incident still surfaced. Victoria Day spend (incident 3) slipped past every detector. The answer there is a reconciliation rule (spend per record within a range), not a looser anomaly threshold.</p></div>
+  </section>
+
+  <section class="stack">
+    <div class="eyebrow">How it works</div>
+    <h2>Predict the day, then judge the gap</h2>
+    <div class="flow">
+      <div class="step"><div class="eyebrow">Profile</div><h3>Feed → daily metrics</h3><p class="ink2">Each day's tombstone rows are profiled: row count, email null %, postal code format (<code>A1A 1A1</code>), duplicate customer IDs, under-19 DOB. Activity adds record volume and total spend.</p></div>
+      <div class="step"><div class="eyebrow">Stage 1</div><h3>Normal-day model</h3><p class="ink2">Gradient-boosted trees predict deviation from the 28-day median using weekday, long weekend, pay-day, season and lottery jackpot size. Retrained weekly, walk-forward, never sees the future.</p></div>
+      <div class="step"><div class="eyebrow">Stage 2</div><h3>Holiday memory</h3><p class="ink2">Each named holiday is one of a kind and comes once a year. The model remembers how far it sat from a normal day last time and applies 85% of that. An unseen holiday gets a damped typical uplift and a 2× wider band.</p></div>
+      <div class="step"><div class="eyebrow">Alert</div><h3>Residual vs. its own error</h3><p class="ink2">Alert when actual misses expected by more than 3.5× the model's recent out-of-sample error (robust MAD). A 7-day mean-residual rule catches slow drift. Rates also use a binomial floor so small days don't false-alarm.</p></div>
+    </div>
+    <div class="prose stack ink2">
+      <p><b>Feedback loop.</b> When an alert is triaged as a real incident, that day is removed from training, so a broken load never teaches the model that broken is normal. Missed incidents stay in, as they would in production.</p>
+      <p><b>Rates don't need the model.</b> Validity rates like email nulls or bad postal codes aren't seasonal, so a z-score catches their incidents just as well. Use seasonal ML where the business has a rhythm (volumes, spend) and simple rules where it doesn't.</p>
+    </div>
+  </section>
+
+  <section class="stack">
+    <div class="eyebrow">Run it</div>
+    <h2>Reproduce the POC</h2>
+    <pre>python3 -m venv .venv &amp;&amp; .venv/bin/pip install -r requirements.txt
+.venv/bin/python src/generate_data.py     # synthetic feeds + 15 incidents
+.venv/bin/python src/observability.py     # profile, detect, score (~3 min)
+.venv/bin/python src/build_report.py      # this page</pre>
+<!--__REPO__-->
+    <p class="muted prose" style="font-size:.9rem">All data is synthetic. The demand shape (weekend, holiday, event and jackpot effects) is hand-set in <code>generate_data.py</code>. The model only sees calendar facts and has to learn the size of each effect from the data.</p>
+  </section>
+  <footer class="fine"><span>Simulated data for illustration only. No OLG data is shown here.</span><!--__FOOTLINK__--></footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const DET = {
+  ml_expected:   { name: "ML expected-value model", short: "ML expected", c: "--ml" },
+  zscore_30d:    { name: "Rolling 30-day z-score (3σ)", short: "30-day z 3σ", c: "--z3" },
+  zscore_30d_k2: { name: "Rolling 30-day z-score (2σ)", short: "30-day z 2σ", c: "--z2" },
+  dow_zscore:    { name: "Same-weekday z-score (8 wk)", short: "Same-weekday z", c: "--dow" },
+};
+const ORDER = ["ml_expected", "zscore_30d", "zscore_30d_k2", "dow_zscore"];
+const METRIC = {
+  activity_records: { name: "Activity records", fmt: v => Math.round(v).toLocaleString() },
+  daily_spend: { name: "Daily spend", fmt: v => "$" + (v / 1e6).toFixed(2) + "M" },
+  tombstone_records: { name: "Tombstone rows", fmt: v => Math.round(v).toLocaleString() },
+  email_null_pct: { name: "Email null %", fmt: v => v.toFixed(2) + "%" },
+  invalid_postal_pct: { name: "Invalid postal %", fmt: v => v.toFixed(2) + "%" },
+  duplicate_id_pct: { name: "Duplicate ID %", fmt: v => v.toFixed(2) + "%" },
+  underage_pct: { name: "Under-19 DOB %", fmt: v => v.toFixed(3) + "%" },
+};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const S = DATA.summary;
+const fmtDate = s => new Date(s + "T12:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
+const wk = s => new Date(s + "T12:00:00").toLocaleDateString("en-CA", { weekday: "short" });
+
+/* ---------- Scoreboard ---------- */
+document.getElementById("evalWindow").textContent = `${fmtDate(S.eval_start)} – ${fmtDate(S.eval_end)} · ${S.eval_days} days × 7 metrics`;
+(function scoreboard() {
+  const t = document.getElementById("scoreboard");
+  const maxFp = Math.max(...ORDER.map(d => S.detectors[d].false_alerts));
+  t.innerHTML = `<thead><tr><th>Detector</th><th>Incidents caught</th><th>False alerts</th><th class="hide-sm">Precision</th></tr></thead>`;
+  const tb = document.createElement("tbody");
+  for (const d of ORDER) {
+    const s = S.detectors[d], col = `var(${DET[d].c})`;
+    const tr = document.createElement("tr"); if (d === "ml_expected") tr.className = "win";
+    tr.innerHTML = `<td><div class="det"><span class="sw" style="background:${col}"></span>${DET[d].name}</div></td>
+      <td><div class="cellbar"><div class="bar"><i style="width:${100 * s.incidents_caught / s.incidents_total}%;background:${col}"></i></div><span class="num">${s.incidents_caught} / ${s.incidents_total}</span></div></td>
+      <td><div class="cellbar"><div class="bar"><i style="width:${Math.max(1.5, 100 * s.false_alerts / maxFp)}%;background:${col}"></i></div><span class="num">${s.false_alerts}</span></div></td>
+      <td class="num hide-sm">${Math.round(s.alert_precision * 100)}%</td>`;
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+})();
+
+/* ---------- Explorer ---------- */
+const state = { metric: "activity_records", det: "ml_expected", win: "2025-12-01|2026-02-28" };
+function seg(id, key) {
+  const box = document.getElementById(id);
+  box.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    state[key] = b.dataset.v; drawMain();
+  });
+}
+seg("detSeg", "det"); seg("winSeg", "win");
+document.getElementById("metric").addEventListener("change", e => { state.metric = e.target.value; drawMain(); });
+
+function niceTicks(lo, hi, n = 5) {
+  const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function axisFmt(m, v) {
+  if (m === "daily_spend") return "$" + (v / 1e6).toFixed(v % 1e6 ? 1 : 0) + "M";
+  if (m.endsWith("_pct")) return v.toFixed(v < 1 ? 2 : 1) + "%";
+  return v >= 1000 ? (v / 1000).toFixed(0) + "k" : String(v);
+}
+
+function drawMain() {
+  const box = document.getElementById("chart"), tip = document.getElementById("tip");
+  box.querySelectorAll("svg").forEach(s => s.remove());
+  const s = DATA.series[state.metric], D = s[state.det];
+  let i0 = 0, i1 = s.dates.length - 1;
+  if (state.win !== "all") { const [a, b] = state.win.split("|"); i0 = s.dates.findIndex(d => d >= a); i1 = s.dates.findLastIndex(d => d <= b); }
+  const idx = []; for (let i = i0; i <= i1; i++) idx.push(i);
+  const W = Math.max(320, box.clientWidth), H = W < 560 ? 280 : 360, m = { l: 52, r: 12, t: 12, b: 28 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `${METRIC[state.metric].name} with ${DET[state.det].short} band` });
+  box.insertBefore(svg, tip);
+  // y-range from actual + band, but cap extreme outliers (×100 unit error) so the shape stays readable
+  const vals = []; idx.forEach(i => { [s.actual[i], D.lo[i], D.hi[i]].forEach(v => v != null && vals.push(v)); });
+  const sorted = [...vals].sort((a, b) => a - b);
+  let yMax = sorted[Math.floor(sorted.length * 0.995)] * 1.08, yMin = Math.min(0, sorted[0]);
+  if (!state.metric.endsWith("_pct")) yMin = 0;
+  const x = i => m.l + (i - i0) / Math.max(1, i1 - i0) * (W - m.l - m.r);
+  const y = v => H - m.b - (Math.min(v, yMax) - yMin) / (yMax - yMin) * (H - m.t - m.b);
+  // grid
+  niceTicks(yMin, yMax, 5).forEach(t => { el("line", { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: css("--grid"), "stroke-width": 1 }, svg);
+    const tx = el("text", { x: m.l - 8, y: y(t) + 4, "text-anchor": "end" }, svg); tx.textContent = axisFmt(state.metric, t); });
+  // x ticks: month starts
+  const span = i1 - i0;
+  idx.forEach(i => { const d = s.dates[i]; const isM = d.endsWith("-01"); const every = span > 200 ? ["01", "04", "07", "10"].includes(d.slice(5, 7)) : true;
+    if (isM && every) { el("line", { x1: x(i), x2: x(i), y1: H - m.b, y2: H - m.b + 4, stroke: css("--axis") }, svg);
+      const tx = el("text", { x: x(i), y: H - 8, "text-anchor": "middle" }, svg);
+      tx.textContent = new Date(d + "T12:00:00").toLocaleDateString("en-CA", { month: "short", year: span > 200 || d.slice(5, 7) === "01" ? "2-digit" : undefined }); } });
+  el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: css("--axis") }, svg);
+  // band
+  const col = css(DET[state.det].c);
+  let path = "", back = "", started = false;
+  const segs = []; let cur = [];
+  idx.forEach(i => { if (D.lo[i] == null || D.hi[i] == null) { if (cur.length) segs.push(cur); cur = []; } else cur.push(i); });
+  if (cur.length) segs.push(cur);
+  segs.forEach(sg => {
+    const top = sg.map((i, k) => `${k ? "L" : "M"}${x(i).toFixed(1)},${y(D.hi[i]).toFixed(1)}`).join("");
+    const bot = sg.slice().reverse().map(i => `L${x(i).toFixed(1)},${y(Math.max(yMin, D.lo[i])).toFixed(1)}`).join("");
+    el("path", { d: top + bot + "Z", fill: col, "fill-opacity": .16, stroke: "none" }, svg);
+    el("path", { d: sg.map((i, k) => `${k ? "L" : "M"}${x(i).toFixed(1)},${y(D.exp[i]).toFixed(1)}`).join(""), fill: "none", stroke: col, "stroke-width": 1.25, "stroke-dasharray": "3 3", "stroke-opacity": .9 }, svg);
+  });
+  // actual
+  let dA = ""; let pen = false;
+  idx.forEach(i => { const v = s.actual[i]; if (v == null) { pen = false; return; } dA += `${pen ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`; pen = true; });
+  el("path", { d: dA, fill: "none", stroke: css("--ink"), "stroke-width": span > 200 ? 1 : 1.6, "stroke-linejoin": "round" }, svg);
+  // markers
+  let caught = 0, missed = 0, fa = 0;
+  const incSeen = new Set();
+  idx.forEach(i => {
+    const v = s.actual[i]; if (v == null) return;
+    const cx = x(i), cy = y(v), a = D.alert[i], inc = s.incident[i];
+    if (inc) { el("circle", { cx, cy, r: 8, fill: "none", stroke: css("--crit"), "stroke-width": 2 }, svg); a ? caught++ : missed++; }
+    if (a) { el("circle", { cx, cy, r: 4.5, fill: col, stroke: css("--surface"), "stroke-width": 2 }, svg); if (!inc) fa++; }
+    if (v > yMax) { const t = el("text", { x: cx + 10, y: m.t + 10 }, svg); t.textContent = "↑ off scale"; }
+  });
+  // hover
+  const hl = el("line", { y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden" }, svg);
+  const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" }, svg);
+  const fmt = METRIC[state.metric].fmt;
+  hit.addEventListener("pointermove", e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+    const i = Math.round(i0 + (px - m.l) / (W - m.l - m.r) * (i1 - i0)); if (i < i0 || i > i1) return;
+    hl.setAttribute("x1", x(i)); hl.setAttribute("x2", x(i)); hl.setAttribute("visibility", "visible");
+    const v = s.actual[i], a = D.alert[i], inc = s.incident[i];
+    const status = inc ? (a ? `<span style="color:var(--good-ink)">✓ Incident caught</span>` : `<span style="color:var(--crit)">✕ Incident missed</span>`)
+      : (a ? `<span style="color:var(--crit)">▲ False alert</span>` : `<span class="muted">No alert</span>`);
+    tip.innerHTML = `<b>${wk(s.dates[i])} ${fmtDate(s.dates[i])}</b>${s.label[i] ? ` · ${s.label[i]}` : ""}
+      <div class="r"><span>Actual</span><b>${v == null ? "no data" : fmt(v)}</b></div>
+      <div class="r"><span>Expected</span><span>${D.exp[i] == null ? "–" : fmt(D.exp[i])}</span></div>
+      <div class="r"><span>Band</span><span>${D.lo[i] == null ? "–" : fmt(Math.max(0, D.lo[i])) + " – " + fmt(D.hi[i])}</span></div>
+      <div style="margin-top:4px">${status}</div>`;
+    tip.hidden = false;
+    const bw = box.clientWidth, tx = x(i) * r.width / W;
+    tip.style.left = (tx > bw * 0.6 ? tx - tip.offsetWidth - 12 : tx + 12) + "px"; tip.style.top = "8px";
+  });
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; hl.setAttribute("visibility", "hidden"); });
+  // legend + readout
+  document.getElementById("legend").innerHTML = `
+    <span><svg width="22" height="10"><line x1="0" y1="5" x2="22" y2="5" stroke="${css("--ink")}" stroke-width="2"/></svg>Actual</span>
+    <span><svg width="22" height="12"><rect width="22" height="12" fill="${col}" fill-opacity=".16"/><line x1="0" y1="6" x2="22" y2="6" stroke="${col}" stroke-dasharray="3 3"/></svg>${DET[state.det].short}: expected ± band</span>
+    <span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="${col}"/></svg>Alert raised</span>
+    <span><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="none" stroke="${css("--crit")}" stroke-width="2"/></svg>Real incident (ground truth)</span>`;
+  document.getElementById("readout").innerHTML = `In this window, <b>${DET[state.det].short}</b> caught <b>${caught}</b> incident day${caught === 1 ? "" : "s"}, missed <b>${missed}</b>, and raised <b>${fa}</b> false alert${fa === 1 ? "" : "s"} on <b>${METRIC[state.metric].name.toLowerCase()}</b>.`;
+}
+
+/* ---------- Heatmap ---------- */
+(function heat() {
+  const types = ["Weekday", "Weekend", "Long weekend", "Stat holiday", "Event day"];
+  const t = document.getElementById("heat");
+  const all = ORDER.flatMap(d => types.map(k => S.detectors[d].false_alerts_by_day_type[k] || 0));
+  const mx = Math.max(...all);
+  const steps = ["--seq-0", "--seq-1", "--seq-2", "--seq-3", "--seq-4", "--seq-5"];
+  let h = `<thead><tr><th></th>${types.map(k => `<th>${k}</th>`).join("")}</tr></thead><tbody>`;
+  for (const d of ORDER) {
+    h += `<tr><th class="rowh"><span class="det"><span class="sw" style="background:var(${DET[d].c})"></span>${DET[d].short}</span></th>`;
+    for (const k of types) {
+      const v = S.detectors[d].false_alerts_by_day_type[k] || 0;
+      const st = v === 0 ? 0 : Math.min(5, 1 + Math.floor(Math.sqrt(v / mx) * 4.999));
+      const ink = st >= 4 ? "#ffffff" : "var(--ink)";
+      h += `<td style="background:var(${steps[st]});color:${ink}" title="${DET[d].short}: ${v} false alerts on ${k.toLowerCase()} days">${v}</td>`;
+    }
+    h += "</tr>";
+  }
+  t.innerHTML = h + "</tbody>";
+  const mlF = DATA.ml_false_alerts;
+  document.getElementById("mlFpCount").textContent = mlF.length;
+  document.getElementById("mlFpHol").textContent = mlF.filter(f => f.day_type === "Stat holiday" || f.day_type === "Event day").length;
+})();
+
+/* ---------- Quarterly line ---------- */
+function drawQ() {
+  const box = document.getElementById("qchart"), tip = document.getElementById("qtip");
+  box.querySelectorAll("svg").forEach(s => s.remove());
+  const Q = DATA.quarters, W = Math.max(300, box.clientWidth), H = 240, m = { l: 34, r: 12, t: 10, b: 28 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "False alerts per quarter by detector" });
+  box.insertBefore(svg, tip);
+  const mx = Math.max(...ORDER.flatMap(d => DATA.fp_by_quarter[d]));
+  const ticks = niceTicks(0, mx, 4), yMax = ticks[ticks.length - 1];
+  const x = i => m.l + i / (Q.length - 1) * (W - m.l - m.r), y = v => H - m.b - v / yMax * (H - m.t - m.b);
+  ticks.forEach(t => { el("line", { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: css("--grid") }, svg);
+    const tx = el("text", { x: m.l - 6, y: y(t) + 4, "text-anchor": "end" }, svg); tx.textContent = t; });
+  Q.forEach((q, i) => { if (W < 480 && i % 2) return; const tx = el("text", { x: x(i), y: H - 8, "text-anchor": "middle" }, svg); tx.textContent = q.replace(/^20(\d\d)Q/, "Q$2·").replace(/Q(\d\d)·(\d)/, "Q$2 '$1"); });
+  for (const d of ORDER) {
+    const c = css(DET[d].c), v = DATA.fp_by_quarter[d];
+    el("path", { d: v.map((n, i) => `${i ? "L" : "M"}${x(i)},${y(n)}`).join(""), fill: "none", stroke: c, "stroke-width": d === "ml_expected" ? 2.5 : 2, "stroke-linejoin": "round" }, svg);
+    v.forEach((n, i) => el("circle", { cx: x(i), cy: y(n), r: 3.5, fill: c, stroke: css("--surface"), "stroke-width": 1.5 }, svg));
+  }
+  const hl = el("line", { y1: m.t, y2: H - m.b, stroke: css("--axis"), visibility: "hidden" }, svg);
+  const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" }, svg);
+  hit.addEventListener("pointermove", e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+    const i = Math.max(0, Math.min(Q.length - 1, Math.round((px - m.l) / (W - m.l - m.r) * (Q.length - 1))));
+    hl.setAttribute("x1", x(i)); hl.setAttribute("x2", x(i)); hl.setAttribute("visibility", "visible");
+    tip.innerHTML = `<b>${Q[i]}</b>${Q[i] === "2024Q4" || Q[i] === "2026Q4" ? ' <span class="muted">(partial)</span>' : ""}` + ORDER.map(d => `<div class="r"><span><span class="sw" style="display:inline-block;margin-right:6px;background:var(${DET[d].c})"></span>${DET[d].short}</span><b>${DATA.fp_by_quarter[d][i]}</b></div>`).join("");
+    tip.hidden = false; const tx = x(i) * r.width / W;
+    tip.style.left = (tx > box.clientWidth * 0.55 ? tx - tip.offsetWidth - 10 : tx + 10) + "px"; tip.style.top = "6px";
+  });
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; hl.setAttribute("visibility", "hidden"); });
+  document.getElementById("qlegend").innerHTML = ORDER.map(d => `<span><span class="sw" style="background:var(${DET[d].c})"></span>${DET[d].short}</span>`).join("");
+}
+
+/* ---------- Incident table ---------- */
+(function incTable() {
+  const t = document.getElementById("inc");
+  const mname = { activity_records: "Activity records", daily_spend: "Daily spend", tombstone_records: "Tombstone rows",
+    email_null_pct: "Email null %", invalid_postal_pct: "Invalid postal %", duplicate_id_pct: "Duplicate ID %", underage_pct: "Under-19 DOB %" };
+  let h = `<thead><tr><th>#</th><th>Incident</th><th>Signal</th>${ORDER.map(d => `<th style="text-align:center"><span class="sw" style="display:inline-block;background:var(${DET[d].c});margin-bottom:4px"></span><br>${DET[d].short}</th>`).join("")}</tr></thead><tbody>`;
+  let last = null;
+  for (const r of DATA.incidents) {
+    const first = r.id !== last; last = r.id;
+    h += `<tr><td class="mono muted">${first ? r.id : ""}</td><td>${first ? `<div>${r.description}</div><div class="kind">${r.day} ${r.start} · ${r.kind.replace("_", " ")}</div>` : ""}</td><td style="white-space:nowrap">${mname[r.metric]}</td>`;
+    h += ORDER.map(d => r.detected[d] ? `<td class="c"><span class="chip ok">✓ caught</span></td>` : `<td class="c"><span class="chip miss">✕ missed</span></td>`).join("") + "</tr>";
+  }
+  t.innerHTML = h + "</tbody>";
+})();
+
+drawMain(); drawQ();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { drawMain(); drawQ(); }, 150); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawMain(); drawQ(); });
+new MutationObserver(() => { drawMain(); drawQ(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>

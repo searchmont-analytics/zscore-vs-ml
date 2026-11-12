@@ -1,0 +1,39 @@
+incident_id,date,metric,kind,description
+1,2025-02-15,activity_records,partial_load,Family Day long-weekend Saturday: 1 of 3 casino feeds failed to land (-35%)
+1,2025-02-15,daily_spend,partial_load,Family Day long-weekend Saturday: 1 of 3 casino feeds failed to land (-35%)
+2,2025-03-11,activity_records,duplicate_load,"Tuesday batch loaded twice (x2 records, spend de-duplicated downstream)"
+3,2025-05-19,daily_spend,partial_load,Victoria Day: online channel spend missing (-30%)
+4,2025-06-03,email_null_pct,schema_break,Upstream CRM renamed email field -> 30% nulls for 3 days
+4,2025-06-04,email_null_pct,schema_break,Upstream CRM renamed email field -> 30% nulls for 3 days
+4,2025-06-05,email_null_pct,schema_break,Upstream CRM renamed email field -> 30% nulls for 3 days
+5,2025-08-02,activity_records,partial_load,"Civic Holiday Saturday: -30% (late file, never back-filled)"
+5,2025-08-02,daily_spend,partial_load,"Civic Holiday Saturday: -30% (late file, never back-filled)"
+6,2025-09-20,daily_spend,unit_error,Spend reported in cents instead of dollars (x100)
+7,2025-11-07,duplicate_id_pct,duplicate_load,Tombstone batch re-sent: duplicate customer IDs + 2x rows
+7,2025-11-07,tombstone_records,duplicate_load,Tombstone batch re-sent: duplicate customer IDs + 2x rows
+8,2025-12-31,activity_records,partial_load,New Year's Eve: casino feed truncated at 20:00 (-30%)
+8,2025-12-31,daily_spend,partial_load,New Year's Eve: casino feed truncated at 20:00 (-30%)
+9,2026-01-14,activity_records,missing_feed,All feeds missing (scheduler outage) -- near-zero rows
+9,2026-01-14,daily_spend,missing_feed,All feeds missing (scheduler outage) -- near-zero rows
+9,2026-01-14,tombstone_records,missing_feed,All feeds missing (scheduler outage) -- near-zero rows
+10,2026-03-10,invalid_postal_pct,format_change,New sign-up form stopped enforcing postal-code format
+10,2026-03-11,invalid_postal_pct,format_change,New sign-up form stopped enforcing postal-code format
+10,2026-03-12,invalid_postal_pct,format_change,New sign-up form stopped enforcing postal-code format
+11,2026-04-04,activity_records,partial_load,Easter Saturday: -35% records
+12,2026-05-26,daily_spend,spike,Tuesday spend +45% (adjustment entries posted twice)
+13,2026-07-06,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-07,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-08,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-09,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-10,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-11,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-12,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-13,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-14,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-15,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-16,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-17,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-18,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+13,2026-07-19,daily_spend,drift,Slow drift: a promo-credit mapping bug erodes spend ~2%/day for 2 weeks
+14,2026-08-22,tombstone_records,partial_load,Saturday tombstone feed -55% (one region's CRM extract failed)
+15,2026-10-12,underage_pct,validation_gap,"Thanksgiving: DOB validation bypassed, under-19 records slip in"

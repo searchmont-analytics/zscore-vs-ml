@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+# Regenerable (python src/generate_data.py); ~29 MB
+data/tombstone_feed.csv.gz
+# Regenerable intermediate (python src/observability.py); ~3 MB
+results/detector_output.csv
+# Duplicate of the data inlined in the HTML
+report/report_data.json
+.claude/
